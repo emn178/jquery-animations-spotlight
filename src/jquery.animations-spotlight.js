@@ -4,19 +4,6 @@
     if(options.wrapper.css('position') == 'static')
       options.wrapper.css('position', 'relative');
     options.wrapper.css('overflow', 'hidden');
-    var canvas = options.canvas;
-    var width = element.width();
-    var height = element.height();
-
-    canvas[0].width = width * 2;
-    canvas[0].height = height * 2;
-    var context = canvas[0].getContext("2d");
-    context.fillStyle = options.variables.color;
-    context.fillRect(0, 0, canvas[0].width, canvas[0].height);
-    context.beginPath();
-    context.arc(width, height, options.radius, 0, 2 * Math.PI, false);
-    context.clip();
-    context.clearRect(0, 0, canvas[0].width, canvas[0].height);
   }
 
   $.animations['spotlight'] = {
@@ -24,7 +11,6 @@
     emptyAnimation: true,
     wrap: true,
     variables: {
-      color: 'rgba(0,0,0,0.8)',
       radius: 100,
       count: 5,
       stopX: null,
@@ -34,24 +20,28 @@
       var element = $(this);
       var width = element.width();
       var height = element.height();
-      var canvas = $('<canvas />')
-      canvas.css({
+      options.radius = Math.min(options.variables.radius, height, width);
+      var light = $('<div />')
+      light.css({
         position: 'absolute',
         top: 0,
-        left: 0
+        left: 0,
+        width: '200%',
+        height: '200%',
+        background: 'radial-gradient(circle, rgba(0,0,0,0), rgba(0,0,0,0) ' + options.radius + 'px, rgba(0,0,0,0.8) ' + (options.radius + 50) + 'px, rgba(0,0,0,0.8))'
       });
-      options.radius = Math.min(options.variables.radius, height, width);
-      options.canvas = canvas;
       setVariables(options, element);
 
       var keyframes = {};
       var count = options.variables.count || 3;
       var base = parseInt(count / 0.8);
+      var transform = '';
+      var x = 0, y = 0;
       for(var i = 0;i < count;++i)
       {
         var percent = i / base * 100 + '%';
-        var x = -Math.random() * 50;
-        var y = -Math.random() * 50;
+        x = -Math.random() * 50;
+        y = -Math.random() * 50;
         if(i == count - 1 && options.variables.stopX !== null && options.variables.stopY !== null)
         {
           var stopX = Math.max(Math.min(options.variables.stopX, 100), 0);
@@ -59,11 +49,11 @@
           x = (stopX - 100) / 2;
           y = (stopY - 100) / 2;
         }
-        var frame = { transform: 'translate(' + x + '%, ' + y + '%)' };
-        keyframes[percent] = frame;
+        transform = 'translate(' + x + '%, ' + y + '%)';
+        keyframes[percent] = { transform: 'scale(1) ' + transform };
       }
-      var frame = { transform: 'scale(${scale})' };
-      keyframes['100%'] = frame;
+      keyframes['100%'] = { transform: 'scale(${scale}) ' + transform };
+      light.vendorCss('transform-origin',  (50 + x) + '% ' + (50 + y) + '%');
 
       var cloneOptions = $.cloneBasicOptions(options);
       cloneOptions.keyframes = keyframes;
@@ -74,9 +64,9 @@
       cloneOptions.fail = function() {
         element.stop();
       };
-      canvas.animate(cloneOptions);
+      light.animate(cloneOptions);
 
-      options.wrapper.append(canvas);
+      options.wrapper.append(light);
     },
     resize: function(options) {
       setVariables(options, $(this));
